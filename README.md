@@ -31,3 +31,6 @@ npm run start:prod
 ````
 
 ## 接口列表
+启动服务时会启动 swagger 接口服务。
+
+swagger 接口地址：http://localhost:${port}/api

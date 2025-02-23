@@ -3,31 +3,45 @@ import { OpenAiService } from './openai.service';
 import { Response } from 'express';
 import OpenAI from 'openai';
 import { PromptsTemplate } from 'src/config/prompt';
+import { ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 
-type AiBodyType = {
-  messages: OpenAI.Chat.ChatCompletionMessageParam[];
-  promptTemplate?: string;
-};
+// 添加 DTO 类
+import { ChatRequestDto } from './dto/chat-request.dto';
+import { StreamChatRequestDto } from './dto/stream-chat-request.dto';
 
+@ApiTags('openai')
 @Controller('openai')
 export class OpenAIController {
   constructor(private readonly openaiService: OpenAiService) {}
-  @Get('')
+
+  @Get('test')
+  @ApiOperation({ summary: 'Test endpoint' })
+  @ApiResponse({ status: 200, description: 'Test response successful.' })
   async test(): Promise<any> {
     return await this.openaiService.createChatCompletion([
-      { role: 'user', content: '测试响应' },
+      { role: 'user', content: 'who are you?' },
     ]);
   }
 
   @Post('chat')
-  async chat(
-    @Body() body: { messages: OpenAI.Chat.ChatCompletionMessageParam[] },
-  ) {
+  @ApiOperation({ summary: 'Chat completion endpoint' })
+  @ApiResponse({ status: 200, description: 'Chat completion successful.' })
+  @ApiBody({ type: ChatRequestDto })
+  async chat(@Body() body: ChatRequestDto) {
     return await this.openaiService.createChatCompletion(body.messages);
   }
 
   @Post('chat/stream')
-  async streamChat(@Res() response: Response, @Body() body: AiBodyType) {
+  @ApiOperation({ summary: 'Streaming chat completion endpoint' })
+  @ApiResponse({
+    status: 200,
+    description: 'Streaming chat started successfully.',
+  })
+  @ApiBody({ type: StreamChatRequestDto })
+  async streamChat(
+    @Res() response: Response,
+    @Body() body: StreamChatRequestDto,
+  ) {
     const promptTemplate = body?.promptTemplate || 'default';
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -44,7 +58,7 @@ export class OpenAIController {
         await this.openaiService.createChatCompletionStream(messages);
 
       for await (const chunk of stream) {
-        const content = chunk.choices || '';
+        const content = chunk || '';
         if (content) {
           response.write(`data: ${JSON.stringify({ content })}\n\n`);
         }
