@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { OpenAiModule } from './openai/openai.module';
 import { ConfigModule } from '@nestjs/config';
+import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { ConfigModule } from '@nestjs/config';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    WorkflowsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
