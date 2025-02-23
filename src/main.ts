@@ -7,8 +7,8 @@ async function bootstrap() {
 
   // Swagger 配置
   const config = new DocumentBuilder()
-    .setTitle('AI Chat API')
-    .setDescription('The AI Chat API description')
+    .setTitle('ai chat services')
+    .setDescription('ai chat services API')
     .setVersion('1.0')
     .addTag('ai')
     .build();
