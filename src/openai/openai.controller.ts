@@ -2,6 +2,12 @@ import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { OpenAiService } from './openai.service';
 import { Response } from 'express';
 import OpenAI from 'openai';
+import { PromptsTemplate } from 'src/config/prompt';
+
+type AiBodyType = {
+  messages: OpenAI.Chat.ChatCompletionMessageParam[];
+  promptTemplate?: string;
+};
 
 @Controller('openai')
 export class OpenAIController {
@@ -21,18 +27,24 @@ export class OpenAIController {
   }
 
   @Post('chat/stream')
-  async streamChat(@Res() response: Response) {
-    try {
-      const stream = await this.openaiService.createChatCompletionStream([
-        { role: 'user', content: '测试流式响应' },
-      ]);
+  async streamChat(@Res() response: Response, @Body() body: AiBodyType) {
+    const promptTemplate = body?.promptTemplate || 'default';
 
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: PromptsTemplate[promptTemplate] },
+      ...(body?.messages || []),
+    ];
+
+    try {
       response.setHeader('Content-Type', 'text/event-stream');
       response.setHeader('Cache-Control', 'no-cache');
       response.setHeader('Connection', 'keep-alive');
 
+      const stream =
+        await this.openaiService.createChatCompletionStream(messages);
+
       for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
+        const content = chunk.choices || '';
         if (content) {
           response.write(`data: ${JSON.stringify({ content })}\n\n`);
         }
