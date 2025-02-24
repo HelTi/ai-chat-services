@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
-// import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplates } from 'src/config/langchain/promptTemplate';
@@ -47,6 +47,7 @@ export class ArticleService {
         prompt,
         this.model,
         new StringOutputParser(),
+        new JsonOutputParser(),
       ]);
 
       const response = await chain.invoke({
@@ -56,7 +57,7 @@ export class ArticleService {
         wordCount: params.wordCount || 1000,
       });
 
-      const jsonData = JSON.parse(response) as ArticleOutput;
+      const jsonData = response as ArticleOutput;
       return jsonData;
     } catch (error) {
       this.logger.error('Article generation error:', error);
