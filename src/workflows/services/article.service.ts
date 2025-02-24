@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
-import { RunnableSequence } from '@langchain/core/runnables';
+import {
+  RunnableLambda,
+  RunnablePassthrough,
+  RunnableSequence,
+} from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplates } from 'src/config/langchain/promptTemplate';
 
@@ -59,6 +63,61 @@ export class ArticleService {
 
       const jsonData = response as ArticleOutput;
       return jsonData;
+    } catch (error) {
+      this.logger.error('Article generation error:', error);
+      throw error;
+    }
+  }
+
+  async generateArticleLCEL(params: ArticleGenerateParams): Promise<any> {
+    try {
+      const outlinePrompt = PromptTemplate.fromTemplate(
+        "Generate a detailed outline for an article with the title '{title}'. The outline should include the main sections and sub-sections of the article.",
+      );
+      const outlineChain = outlinePrompt
+        .pipe(this.model)
+        .pipe(new StringOutputParser());
+
+      const articlePrompt = PromptTemplate.fromTemplate(
+        'Write a comprehensive article based on the following outline: {outline}. The article should be well-structured, informative, and engaging. It should be around 1000 words.',
+      );
+      const articleChain = articlePrompt
+        .pipe(this.model)
+        .pipe(new StringOutputParser());
+
+      const formatChain = new RunnableLambda({
+        func: (input: { outline: { outline: string }; content: string }) => ({
+          outline: input.outline.outline,
+          content: input.content,
+        }),
+      });
+
+      const fullChain = new RunnablePassthrough()
+        .pipe(outlineChain)
+        .pipe(
+          new RunnableLambda({
+            func: (outline: string) => ({
+              outline,
+              outlineForPrompt: outline,
+            }),
+          }),
+        )
+        .pipe(
+          RunnableSequence.from([
+            {
+              outline: new RunnablePassthrough(),
+              content: (input: { outlineForPrompt: string }) =>
+                articleChain.invoke({ outline: input.outlineForPrompt }),
+            },
+            formatChain,
+          ]),
+        );
+
+      const response = await fullChain.invoke({
+        title: params.topic,
+      });
+
+      return response;
     } catch (error) {
       this.logger.error('Article generation error:', error);
       throw error;

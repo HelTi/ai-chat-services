@@ -17,8 +17,8 @@ export class WorkflowsController {
   })
   async generateArticle(
     @Body() generateArticleDto: GenerateArticleDto,
-  ): Promise<ArticleResponseDto> {
-    return await this.articleService.generateArticle(generateArticleDto);
+  ): Promise<any> {
+    return await this.articleService.generateArticleLCEL(generateArticleDto);
   }
 
   @Get('test')
