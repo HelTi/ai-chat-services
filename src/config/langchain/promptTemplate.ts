@@ -12,12 +12,14 @@ export const PromptTemplates: Record<string, string> = {
 4. 标题吸引人且准确概括文章主旨
 
 输出格式必须是以下JSON结构：
+\`\`\`json
 {{
   "title": "你的文章标题",
   "content": "你的文章正文",
   "summary": "250字以内的文章摘要",
   "keywords": ["关键词1", "关键词2"]
 }}
+\`\`\`
 
-请确保输出是严格的JSON格式，不要添加任何其他说明文字。`,
+请确保输出是严格的JSON格式，内容要包裹在不要添加任何其他说明文字。`,
 };
