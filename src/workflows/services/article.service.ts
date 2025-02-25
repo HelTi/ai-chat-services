@@ -85,10 +85,33 @@ export class ArticleService {
         .pipe(this.model)
         .pipe(new StringOutputParser());
 
+      const summaryPrompt = PromptTemplate.fromTemplate(
+        '请为以下文章内容生成一个简洁的摘要（200字以内）：{content}',
+      );
+      const summaryChain = summaryPrompt
+        .pipe(this.model)
+        .pipe(new StringOutputParser());
+
+      const keywordsPrompt = PromptTemplate.fromTemplate(
+        '请为以下文章内容提取1-2个关键词或标签，以JSON数组格式返回：{content}',
+      );
+      const keywordsChain = keywordsPrompt
+        .pipe(this.model)
+        .pipe(new StringOutputParser())
+        .pipe(new JsonOutputParser<string[]>());
+
       const formatChain = new RunnableLambda({
-        func: (input: { outline: { outline: string }; content: string }) => ({
-          outline: input.outline.outline,
+        func: (input: {
+          outline: string;
+          content: string;
+          summary: string;
+          keywords: string[];
+        }) => ({
+          title: params.topic,
+          outline: input.outline,
           content: input.content,
+          summary: input.summary,
+          keywords: input.keywords,
         }),
       });
 
@@ -105,10 +128,26 @@ export class ArticleService {
         .pipe(
           RunnableSequence.from([
             {
-              outline: new RunnablePassthrough(),
-              content: (input: { outlineForPrompt: string }) =>
-                articleChain.invoke({ outline: input.outlineForPrompt }),
+              outline: (input: { outline: string }) => input.outline,
+              content: (input: { outline: string }) =>
+                articleChain.invoke({ outline: input.outline }),
             },
+            new RunnableLambda({
+              func: async (input: { outline: string; content: string }) => {
+                const summary = await summaryChain.invoke({
+                  content: input.content,
+                });
+                const keywords = await keywordsChain.invoke({
+                  content: input.content,
+                });
+                return {
+                  outline: input.outline,
+                  content: input.content,
+                  summary,
+                  keywords,
+                };
+              },
+            }),
             formatChain,
           ]),
         );
