@@ -15,12 +15,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // 启用 CORS，允许所有来源
-  app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  const corsOptions = {
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? /^https:\/\/(.*\.)?ttkit\.cn$/ // 生产环境只允许 ttkit.cn 及其子域名访问
+        : ['http://localhost:3000', 'http://localhost:3001'], // 开发环境允许特定域名访问
     credentials: true,
-  });
+  };
+  app.enableCors(corsOptions);
 
   const port = process.env.PORT ?? 3030;
   await app.listen(port);

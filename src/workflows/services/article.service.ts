@@ -72,14 +72,14 @@ export class ArticleService {
   async generateArticleLCEL(params: ArticleGenerateParams): Promise<any> {
     try {
       const outlinePrompt = PromptTemplate.fromTemplate(
-        "Generate a detailed outline for an article with the title '{title}'. The outline should include the main sections and sub-sections of the article.",
+        '为标题为` {title} `的文章生成详细的大纲。提纲应包括文章的主要部分和子部分。',
       );
       const outlineChain = outlinePrompt
         .pipe(this.model)
         .pipe(new StringOutputParser());
 
       const articlePrompt = PromptTemplate.fromTemplate(
-        'Write a comprehensive article based on the following outline: {outline}. The article should be well-structured, informative, and engaging. It should be around 1000 words.',
+        '根据以下大纲: {outline} 写一篇全面的文章：这篇文章应该结构良好，内容丰富，引人入胜。',
       );
       const articleChain = articlePrompt
         .pipe(this.model)
