@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, Query } from '@nestjs/common';
 import { ArticleService } from './services/article.service';
 import { GenerateArticleDto, ArticleResponseDto } from './dto/article.dto';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 
 @ApiTags('workflows')
@@ -16,10 +16,23 @@ export class WorkflowsController {
     description: '文章生成成功',
     type: ArticleResponseDto,
   })
+  @ApiQuery({ name: 'generateSummary', required: false, type: Boolean })
+  @ApiQuery({ name: 'generateKeywords', required: false, type: Boolean })
   async generateArticle(
     @Body() generateArticleDto: GenerateArticleDto,
+    @Query('generateSummary') generateSummary?: string,
+    @Query('generateKeywords') generateKeywords?: string,
   ): Promise<any> {
-    return await this.articleService.generateArticleLCEL(generateArticleDto);
+    const options = {
+      generateSummary: generateSummary !== 'false',
+      generateKeywords: generateKeywords !== 'false',
+    };
+
+    return await this.articleService.generateArticleLCEL(
+      generateArticleDto,
+      undefined,
+      options,
+    );
   }
 
   @Get('test')
@@ -39,9 +52,13 @@ export class WorkflowsController {
     description: '文章生成成功',
     type: ArticleResponseDto,
   })
+  @ApiQuery({ name: 'generateSummary', required: false, type: Boolean })
+  @ApiQuery({ name: 'generateKeywords', required: false, type: Boolean })
   async generateArticleStream(
     @Res() response: Response,
     @Body() body: GenerateArticleDto,
+    @Query('generateSummary') generateSummary?: string,
+    @Query('generateKeywords') generateKeywords?: string,
   ) {
     console.log('body', body);
     response.setHeader('Content-Type', 'text/event-stream');
@@ -49,9 +66,20 @@ export class WorkflowsController {
     response.setHeader('Connection', 'keep-alive');
 
     try {
-      await this.articleService.generateArticleLCEL(body, (chunk, type) => {
-        response.write(`data: ${JSON.stringify({ type, content: chunk })}\n\n`);
-      });
+      const options = {
+        generateSummary: generateSummary === 'true',
+        generateKeywords: generateKeywords === 'true',
+      };
+
+      await this.articleService.generateArticleLCEL(
+        body,
+        (chunk, type) => {
+          response.write(
+            `data: ${JSON.stringify({ type, content: chunk })}\n\n`,
+          );
+        },
+        options,
+      );
 
       response.end();
     } catch (error) {
