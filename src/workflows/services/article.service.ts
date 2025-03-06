@@ -114,7 +114,7 @@ export class ArticleService {
       }
 
       const outlinePrompt = PromptTemplate.fromTemplate(
-        '给定标题：{title}，类型：{articleType}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
+        '给定标题：{title}，类型：{articleType}{wordCount}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
       );
       const outlineSteam = await outlinePrompt
         .pipe(this.model)
@@ -122,6 +122,9 @@ export class ArticleService {
         .stream({
           title: finalParams.topic,
           articleType: this.getArticleTypeDescription(finalParams.articleType),
+          wordCount: finalParams.wordCount
+            ? `，字数要求：${finalParams.wordCount}字`
+            : '',
         });
 
       let outline = '';
@@ -131,7 +134,7 @@ export class ArticleService {
       }
 
       const articlePrompt = PromptTemplate.fromTemplate(
-        '根据以下大纲: {outline} 写一篇{articleType}类型的详细文章：这篇文章应该结构良好，内容丰富，引人入胜。',
+        '根据以下大纲: {outline} 写一篇{articleType}类型的详细文章{wordCount}：这篇文章应该结构良好，内容丰富，引人入胜。',
       );
 
       const contentStream = await articlePrompt
@@ -140,6 +143,9 @@ export class ArticleService {
         .stream({
           outline,
           articleType: this.getArticleTypeDescription(finalParams.articleType),
+          wordCount: finalParams.wordCount
+            ? `，字数要求：${finalParams.wordCount}字`
+            : '',
         });
 
       let fullContent = '';
@@ -215,14 +221,14 @@ export class ArticleService {
       };
 
       const outlinePrompt = PromptTemplate.fromTemplate(
-        '给定标题：{title}，类型：{articleType}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
+        '给定标题：{title}，类型：{articleType}{wordCount}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
       );
       const outlineChain = outlinePrompt
         .pipe(this.model)
         .pipe(new StringOutputParser());
 
       const articlePrompt = PromptTemplate.fromTemplate(
-        '根据以下大纲: {outline} 写一篇{articleType}类型的详细文章，这篇文章应该结构良好，内容丰富，引人入胜。',
+        '根据以下大纲: {outline} 写一篇{articleType}类型的详细文章{wordCount}，这篇文章应该结构良好，内容丰富，引人入胜。',
       );
       const articleChain = articlePrompt
         .pipe(this.model)
@@ -231,10 +237,16 @@ export class ArticleService {
       const outline = await outlineChain.invoke({
         title: finalParams.topic,
         articleType: this.getArticleTypeDescription(finalParams.articleType),
+        wordCount: finalParams.wordCount
+          ? `，字数要求：${finalParams.wordCount}字`
+          : '',
       });
       const content = await articleChain.invoke({
         outline,
         articleType: this.getArticleTypeDescription(finalParams.articleType),
+        wordCount: finalParams.wordCount
+          ? `，字数要求：${finalParams.wordCount}字`
+          : '',
       });
 
       const result: ArticleResult = {
