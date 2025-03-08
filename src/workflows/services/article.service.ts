@@ -7,12 +7,17 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplates } from 'src/config/langchain/promptTemplate';
 
+export type ArticleType =
+  | 'blog'
+  | 'tutorial'
+  | 'review'
+  | 'opinion'
+  | 'general';
 export interface ArticleGenerateParams {
   topic: string;
   language?: 'zh' | 'en';
-  style?: 'professional' | 'casual' | 'academic';
   wordCount?: number;
-  articleType?: 'blog' | 'tutorial' | 'review' | 'opinion' | 'general';
+  articleType?: ArticleType;
 }
 
 export interface ArticleOutput {
@@ -78,8 +83,8 @@ export class ArticleService {
       const response = await chain.invoke({
         topic: params.topic,
         language: params.language || 'zh',
-        style: params.style || 'professional',
         wordCount: params.wordCount || 1000,
+        articleType: params.articleType || 'general',
       });
 
       const jsonData = response as ArticleOutput;

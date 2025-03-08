@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ArticleType } from '../services/article.service';
 
 export class GenerateArticleDto {
   @ApiProperty({
@@ -15,11 +16,11 @@ export class GenerateArticleDto {
   language?: 'zh' | 'en';
 
   @ApiPropertyOptional({
-    description: '文章风格',
-    enum: ['professional', 'casual', 'academic'],
-    default: 'professional',
+    description: '文章类型',
+    enum: ['blog', 'tutorial', 'review', 'opinion', 'general'],
+    default: 'general',
   })
-  style?: 'professional' | 'casual' | 'academic';
+  articleType?: ArticleType;
 
   @ApiPropertyOptional({
     description: '文章字数',
