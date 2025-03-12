@@ -13,11 +13,17 @@ export type ArticleType =
   | 'review'
   | 'opinion'
   | 'general';
+
 export interface ArticleGenerateParams {
   topic: string;
   language?: 'zh' | 'en';
   wordCount?: number;
   articleType?: ArticleType;
+  openai_api_key: string;
+  openai_api_base_url: string;
+  model?: string;
+  temperature?: number;
+  streaming?: boolean;
 }
 
 export interface ArticleOutput {
@@ -67,6 +73,32 @@ export class ArticleService {
       },
     });
   }
+  /**
+   * 生成OpenAI模型
+   * @param OPENAI_API_KEY
+   * @param OPENAI_API_BASE_URL
+   * @param model
+   * @param temperature
+   * @param streaming
+   * @returns
+   */
+  private genOpenAIModel(
+    OPENAI_API_KEY: string,
+    OPENAI_API_BASE_URL: string,
+    model: string = 'gpt-4',
+    temperature: number = 0.7,
+    streaming: boolean = true,
+  ) {
+    return new ChatOpenAI({
+      model,
+      temperature,
+      streaming,
+      configuration: {
+        apiKey: OPENAI_API_KEY,
+        baseURL: OPENAI_API_BASE_URL,
+      },
+    });
+  }
 
   async generateArticle(params: ArticleGenerateParams): Promise<ArticleOutput> {
     const template = PromptTemplates.articleGenerator;
@@ -112,17 +144,25 @@ export class ArticleService {
         articleType: params.articleType || 'general',
       };
 
-      const streamingModel = this.streamingModel;
+      console.log('finalParams', finalParams);
+
+      const streamingModel = this.genOpenAIModel(
+        params.openai_api_key,
+        params.openai_api_base_url,
+        params.model,
+        params.temperature,
+        params.streaming,
+      );
 
       if (!streamHandler) {
-        return this.generateArticleLCELNormal(finalParams, finalOptions);
+        throw new Error('streamHandler is required');
       }
 
       const outlinePrompt = PromptTemplate.fromTemplate(
         '给定标题：{title}，类型：{articleType}{wordCount}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
       );
       const outlineSteam = await outlinePrompt
-        .pipe(this.model)
+        .pipe(streamingModel)
         .pipe(new StringOutputParser())
         .stream({
           title: finalParams.topic,
@@ -167,7 +207,7 @@ export class ArticleService {
           '请为以下文章内容生成一个300字以内文章摘要：{content}',
         );
         const summaryStream = await summaryPrompt
-          .pipe(this.model)
+          .pipe(streamingModel)
           .pipe(new StringOutputParser())
           .stream({ content: fullContent });
 
@@ -182,7 +222,7 @@ export class ArticleService {
           '请为以下文章内容提取1-2个关键词或标签，以JSON数组格式返回：{content}',
         );
         const keywordsResult = await keywordsPrompt
-          .pipe(this.model)
+          .pipe(streamingModel)
           .pipe(new StringOutputParser())
           .pipe(new JsonOutputParser<string[]>())
           .invoke({ content: fullContent });
@@ -203,84 +243,6 @@ export class ArticleService {
 
       if (finalOptions.generateKeywords) {
         result.keywords = keywords;
-      }
-
-      return result;
-    } catch (error) {
-      this.logger.error('Article generation error:', error);
-      throw error;
-    }
-  }
-
-  private async generateArticleLCELNormal(
-    params: ArticleGenerateParams,
-    options: ArticleGenerateOptions = {
-      generateSummary: true,
-      generateKeywords: true,
-    },
-  ): Promise<ArticleResult> {
-    try {
-      const finalParams = {
-        ...params,
-        articleType: params.articleType || 'general',
-      };
-
-      const outlinePrompt = PromptTemplate.fromTemplate(
-        '给定标题：{title}，类型：{articleType}{wordCount}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
-      );
-      const outlineChain = outlinePrompt
-        .pipe(this.model)
-        .pipe(new StringOutputParser());
-
-      const articlePrompt = PromptTemplate.fromTemplate(
-        '根据以下大纲: {outline} 写一篇{articleType}类型的详细文章{wordCount}，这篇文章应该结构良好，内容丰富，引人入胜。',
-      );
-      const articleChain = articlePrompt
-        .pipe(this.model)
-        .pipe(new StringOutputParser());
-
-      const outline = await outlineChain.invoke({
-        title: finalParams.topic,
-        articleType: this.getArticleTypeDescription(finalParams.articleType),
-        wordCount: finalParams.wordCount
-          ? `，字数要求：${finalParams.wordCount}字`
-          : '',
-      });
-      const content = await articleChain.invoke({
-        outline,
-        articleType: this.getArticleTypeDescription(finalParams.articleType),
-        wordCount: finalParams.wordCount
-          ? `，字数要求：${finalParams.wordCount}字`
-          : '',
-      });
-
-      const result: ArticleResult = {
-        title: finalParams.topic,
-        outline,
-        content,
-      };
-
-      if (options.generateSummary) {
-        const summaryPrompt = PromptTemplate.fromTemplate(
-          '请为以下文章内容生成一个300字以内文章摘要：{content}',
-        );
-        const summaryChain = summaryPrompt
-          .pipe(this.model)
-          .pipe(new StringOutputParser());
-
-        result.summary = await summaryChain.invoke({ content });
-      }
-
-      if (options.generateKeywords) {
-        const keywordsPrompt = PromptTemplate.fromTemplate(
-          '请为以下文章内容提取1-2个关键词或标签，以JSON数组格式返回：{content}',
-        );
-        const keywordsChain = keywordsPrompt
-          .pipe(this.model)
-          .pipe(new StringOutputParser())
-          .pipe(new JsonOutputParser<string[]>());
-
-        result.keywords = await keywordsChain.invoke({ content });
       }
 
       return result;
