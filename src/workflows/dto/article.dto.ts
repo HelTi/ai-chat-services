@@ -28,6 +28,39 @@ export class GenerateArticleDto {
     default: 1000,
   })
   wordCount?: number;
+
+  @ApiProperty({
+    description: 'OpenAI API Key',
+    example: 'sk-...',
+  })
+  openai_api_key: string;
+
+  @ApiProperty({
+    description: 'OpenAI API Base URL',
+    example: 'https://api.deepseek.com/v1',
+  })
+  openai_api_base_url: string;
+
+  @ApiPropertyOptional({
+    description: 'OpenAI 模型名称',
+    example: 'deepseek-chat',
+    default: 'deepseek-chat',
+  })
+  model?: string;
+
+  @ApiPropertyOptional({
+    description: '模型温度参数',
+    example: 0.7,
+    default: 0.7,
+  })
+  temperature?: number;
+
+  @ApiPropertyOptional({
+    description: '是否使用流式输出',
+    example: true,
+    default: true,
+  })
+  streaming?: boolean;
 }
 
 export class ArticleResponseDto {

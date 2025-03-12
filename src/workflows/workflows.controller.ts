@@ -3,11 +3,16 @@ import { ArticleService } from './services/article.service';
 import { GenerateArticleDto, ArticleResponseDto } from './dto/article.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { ArticleResult } from './services/article.service';
 
 @ApiTags('workflows')
 @Controller('workflows')
 export class WorkflowsController {
-  constructor(private readonly articleService: ArticleService) {}
+  constructor(
+    private readonly articleService: ArticleService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('article')
   @ApiOperation({ summary: '生成文章' })
@@ -22,7 +27,7 @@ export class WorkflowsController {
     @Body() generateArticleDto: GenerateArticleDto,
     @Query('generateSummary') generateSummary?: string,
     @Query('generateKeywords') generateKeywords?: string,
-  ): Promise<any> {
+  ): Promise<ArticleResult> {
     const options = {
       generateSummary: generateSummary !== 'false',
       generateKeywords: generateKeywords !== 'false',
