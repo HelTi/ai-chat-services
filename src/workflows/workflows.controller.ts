@@ -65,7 +65,6 @@ export class WorkflowsController {
     @Query('generateSummary') generateSummary?: string,
     @Query('generateKeywords') generateKeywords?: string,
   ) {
-    console.log('body', body);
     response.setHeader('Content-Type', 'text/event-stream');
     response.setHeader('Cache-Control', 'no-cache');
     response.setHeader('Connection', 'keep-alive');
