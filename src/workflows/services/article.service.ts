@@ -144,8 +144,6 @@ export class ArticleService {
         articleType: params.articleType || 'general',
       };
 
-      console.log('finalParams', finalParams);
-
       const streamingModel = this.genOpenAIModel(
         params.openai_api_key,
         params.openai_api_base_url,
