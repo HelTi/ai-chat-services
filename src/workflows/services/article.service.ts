@@ -159,7 +159,7 @@ export class ArticleService {
       const outlinePrompt = PromptTemplate.fromTemplate(
         '给定标题：{title}，类型：{articleType}{wordCount}，生成一个简洁的大纲，涵盖文章可能涉及的关键部分。每个条目应清晰且独立，确保大纲简明扼要，同时覆盖必要主题，确保不要给出大纲列表以外的任何内容和总结。',
       );
-      const outlineSteam = await outlinePrompt
+      const outlineStream = await outlinePrompt
         .pipe(streamingModel)
         .pipe(new StringOutputParser())
         .stream({
@@ -171,7 +171,7 @@ export class ArticleService {
         });
 
       let outline = '';
-      for await (const chunk of outlineSteam) {
+      for await (const chunk of outlineStream) {
         streamHandler(chunk, 'outline');
         outline += chunk;
       }
