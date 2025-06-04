@@ -16,7 +16,7 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return "ai service started"', () => {
-      expect(appController.getHello()).toBe('ai service  started');
+      expect(appController.getHello()).toBe('ai service started');
     });
   });
 });
